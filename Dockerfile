@@ -1,7 +1,8 @@
 FROM gradle:jdk17 as build
 WORKDIR /app
 COPY . .
-RUN ./gradlew build --no-daemon
+RUN chmod +x ./gradlew
+RUN ./gradlew build --no-daemon --stacktrace --info
 
 FROM openjdk:17-alpine
 WORKDIR /app

@@ -1,1 +1,12 @@
 #empty so far
+server:
+  port: 8081
+  servlet:
+    encoding:
+      enabled: true
+      charset: UTF-8
+      force: true
+
+spring:
+  messages:
+    encoding: UTF-8

@@ -96,7 +96,7 @@ deactivate Telegram
 
 * Собрать проект в готовый к исполнению файл   
   ````gradle build````  (если есть установленный грэдл)
-    + ИЛИ же ````gradlew build````  (если Windows и грэдла нет)
+    + ИЛИ же ````.\gradlew build````  (если Windows и грэдла нет)
     + ИЛИ же ````chmod +x gradlew```` ````./gradlew build```` (если Linux и грэдла нет)
 * Запустить его:  
   ````java -jar ./build/libs/khasmamedov-middle-service-0.0.1-SNAPSHOT.jar````  
@@ -117,6 +117,7 @@ deactivate Telegram
   [ссылка на докер](https://docs.docker.com/get-docker/)
 * Создать в докере image (посмотреть docker -> images в системе)  
   `docker build -t middle-service .`
+  <span title="если вы видите ошибку типа `ERROR [build 5/5] RUN ./gradlew build --no-daemon --stacktrace --info`, вам нужно будет запустить `gradle wrapper`">возможная ошибка сборки</span>  
 * Запустить приложение:
   + В фоновом режиме:  
     `docker run --name middle-service -d middle-service`  
@@ -126,7 +127,7 @@ deactivate Telegram
     <span title="_ctrl+c, чтобы выйти из приложения в данном случае_">выход из приложения</span>
     <span title="_Если вы видите ошибку типа `docker: Error response from daemon: Conflict. The container name "/имя контейнера" is already in use by container "длинное имя". You have to remove (or rename) that container to be able to reuse that name.`,  
     вам потребуется остановить это контейнер перед тем как запускать программу:  
-    `docker stop 23a960d080bd5798917cb70c5a33992c3ae2a715a9cd0187822cab80f632973e`
+    `docker stop 23a960d080bd5798917cb70c5a33992c3ae2a715a9cd0187822cab80f632973e`  
     `docker rm 23a960d080bd5798917cb70c5a33992c3ae2a715a9cd0187822cab80f632973e`_">примечание про ошибки контейнеров</span>
 
 </details>
@@ -134,3 +135,5 @@ deactivate Telegram
 ### За_что_отвечает_middle-service
 На настоящий момент дорабатывается.  
 ![gandalf_yapfiles.ru.gif](images%2Fgandalf_yapfiles.ru.gif)
+
+gradle wrapper

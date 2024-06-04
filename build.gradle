@@ -2,6 +2,7 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '2.7.5'
 	id 'io.spring.dependency-management' version '1.1.5'
+	id 'jacoco'
 }
 
 group = 'com.example'
@@ -25,6 +26,15 @@ dependencies {
 
 	testCompileOnly 'org.projectlombok:lombok:1.18.32'
 	testAnnotationProcessor 'org.projectlombok:lombok:1.18.32'
+
+	implementation "org.openapitools:openapi-generator-gradle-plugin:7.5.0"
+	implementation 'io.swagger.core.v3:swagger-annotations:2.2.21'
+
+	testImplementation 'org.assertj:assertj-core:3.26.0'
+
+	configurations.all {
+		exclude group: 'org.slf4j', module: 'slf4j-simple'
+	}
 }
 
 tasks.named('test') {
@@ -44,3 +54,20 @@ jar {
 tasks.withType(JavaCompile).configureEach {
 	options.encoding = 'UTF-8'
 }
+
+jacoco {
+	toolVersion = "0.8.11"
+	reportsDirectory = layout.buildDirectory.dir('customJacocoReportDir')
+}
+
+jacocoTestReport {
+	reports {
+		xml.required = false
+		csv.required = false
+		html.outputLocation = layout.buildDirectory.dir('jacocoHtml')
+	}
+}
+
+
+
+

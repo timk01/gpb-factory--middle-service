@@ -9,6 +9,7 @@
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>${LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
         </encoder>
     </appender>
 
@@ -22,6 +23,7 @@
         </rollingPolicy>
         <encoder>
             <pattern>${LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
         </encoder>
     </appender>
 
@@ -35,6 +37,7 @@
         </rollingPolicy>
         <encoder>
             <pattern>${LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
         </encoder>
     </appender>
 
@@ -42,16 +45,7 @@
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE"/>
+        <appender-ref ref="ERROR_FILE"/>
     </root>
-
-    <!-- Error logger -->
-    <logger name="org.springframework" level="ERROR">
-        <appender-ref ref="ERROR_FILE"/>
-    </logger>
-
-    <!-- Error logger for Java classes -->
-    <logger name="ru.gbp.app.KhasmamedovMiddleService" level="ERROR">
-        <appender-ref ref="ERROR_FILE"/>
-    </logger>
 
 </configuration>
