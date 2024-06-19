@@ -13,6 +13,8 @@ import org.springframework.web.client.RestTemplate;
 import ru.gpb.app.dto.CreateUserRequest;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -30,51 +32,64 @@ class UserMiddleServiceTest {
 
     @BeforeAll
     static void setUp() {
-        properRequestId = new CreateUserRequest(868047670);
-        improperRequestId = new CreateUserRequest(1234567890);
-        wrongRequestId = new CreateUserRequest(-1234567890);
+        properRequestId = new CreateUserRequest(868047670, "Khasmamedov");
+        improperRequestId = new CreateUserRequest(1234567890, "Khasmamedov");
+        wrongRequestId = new CreateUserRequest(-1234567890, "Khasmamedov");
     }
 
     @Test
-    public void createUserQuerySuccessfullySendAndReturned204() {
+    public void createUserReturned204() {
         ResponseEntity<Void> response = new ResponseEntity<>(HttpStatus.NO_CONTENT);
         when(restTemplate.postForEntity("/users", properRequestId, Void.class))
                 .thenReturn(response);
 
-        boolean res = middleService.createUser(properRequestId);
+        UserCreationStatus result = middleService.createUser(properRequestId);
 
-        assertThat(res).isTrue();
+        assertThat(result).isEqualTo(UserCreationStatus.USER_CREATED);
+        verify(restTemplate, times(1))
+                .postForEntity("/users", properRequestId, Void.class);
+    }
+
+    @Test
+    public void createUserReturned409() {
+        ResponseEntity<Void> response = new ResponseEntity<>(HttpStatus.CONFLICT);
+        when(restTemplate.postForEntity("/users", properRequestId, Void.class))
+                .thenReturn(response);
+
+        UserCreationStatus result = middleService.createUser(properRequestId);
+
+        assertThat(result).isEqualTo(UserCreationStatus.USER_ALREADY_EXISTS);
         verify(restTemplate, times(1))
                 .postForEntity("/users", properRequestId, Void.class);
     }
 
 
     @Test
-    public void createUserQuerySuccessfullySendAndReturnedNot204() {
+    public void createUserReturnedNot204Or409() {
         @SuppressWarnings("unchecked")
         ResponseEntity<Void> mockedResponse = mock(ResponseEntity.class);
         when(mockedResponse.getStatusCode()).thenReturn(HttpStatus.BAD_REQUEST);
         when(restTemplate.postForEntity("/users", improperRequestId, Void.class))
                 .thenReturn(mockedResponse);
 
-        boolean res = middleService.createUser(improperRequestId);
+        UserCreationStatus result = middleService.createUser(improperRequestId);
 
-        assertThat(res).isFalse();
+        assertThat(result).isEqualTo(UserCreationStatus.USER_ERROR);
         verify(restTemplate, times(1))
                 .postForEntity("/users", improperRequestId, Void.class);
     }
 
 
     @Test
-    public void createUserQuerySuccessfullySendAndReturnedHttpStatusCodeException() {
+    public void createUserResultedInHttpStatusCodeException() {
         HttpStatusCodeException httpStatusCodeException = new HttpStatusCodeException(HttpStatus.INTERNAL_SERVER_ERROR) {
         };
         when(restTemplate.postForEntity("/users", wrongRequestId, Void.class))
                 .thenThrow(httpStatusCodeException);
 
-        boolean res = middleService.createUser(wrongRequestId);
+        UserCreationStatus result = middleService.createUser(wrongRequestId);
 
-        assertThat(res).isFalse();
+        assertEquals(UserCreationStatus.USER_ERROR, result);
         verify(restTemplate, times(1))
                 .postForEntity("/users", wrongRequestId, Void.class);
     }
@@ -86,9 +101,9 @@ class UserMiddleServiceTest {
         when(restTemplate.postForEntity("/users", wrongRequestId, Void.class))
                 .thenThrow(seriousException);
 
-        boolean res = middleService.createUser(wrongRequestId);
+        UserCreationStatus result = middleService.createUser(wrongRequestId);
 
-        assertThat(res).isFalse();
+        assertEquals(UserCreationStatus.USER_ERROR, result);
         verify(restTemplate, times(1))
                 .postForEntity("/users", wrongRequestId, Void.class);
     }

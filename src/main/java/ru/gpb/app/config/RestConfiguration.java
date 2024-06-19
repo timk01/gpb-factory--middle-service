@@ -13,7 +13,7 @@ import java.time.Duration;
 @Configuration
 public class RestConfiguration {
     @Bean
-    public RestTemplate restTemplate(RestTemplateBuilder builder, @Value("${backend-service-c.url}") String backUrl) {
+    public RestTemplate restTemplate(RestTemplateBuilder builder, @Value("${provided-back-service.url}") String backUrl) {
         return builder
                 .rootUri(backUrl)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)

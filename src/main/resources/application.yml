@@ -10,3 +10,6 @@ server:
 spring:
   messages:
     encoding: UTF-8
+
+provided-back-service:
+  url: http://localhost:8081/v2/api  # времянка, адрес пока не известен
