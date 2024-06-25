@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-
     <!-- Define the logging levels -->
     <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"/>
     <property name="LOG_PATH" value="middle_"/>
-
     <!-- Console appender -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
@@ -12,7 +10,6 @@
             <charset>UTF-8</charset>
         </encoder>
     </appender>
-
     <!-- Rolling file appender -->
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${LOG_PATH}myapp.log</file>
@@ -26,7 +23,6 @@
             <charset>UTF-8</charset>
         </encoder>
     </appender>
-
     <!-- Error file appender -->
     <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${LOG_PATH}error.log</file>
@@ -71,5 +67,4 @@
         <appender-ref ref="FILE"/>
         <appender-ref ref="ERROR_FILE"/>
     </root>
-
 </configuration>
