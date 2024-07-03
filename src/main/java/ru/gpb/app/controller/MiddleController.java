@@ -6,13 +6,17 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import ru.gpb.app.dto.CreateAccountRequest;
-import ru.gpb.app.dto.CreateUserRequest;
+import ru.gpb.app.dto.*;
 import ru.gpb.app.dto.Error;
+import ru.gpb.app.mapper.TransferRequestConverter;
 import ru.gpb.app.service.*;
+import ru.gpb.app.dto.Error;
 
 import javax.validation.Valid;
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @Validated
@@ -23,10 +27,13 @@ public class MiddleController {
     private final UserMiddleService userMiddleService;
     private final GlobalExceptionHandler globalExceptionHandler;
 
+    private final TransferRequestConverter converter;
+
     @Autowired
-    public MiddleController(UserMiddleService userMiddleService, GlobalExceptionHandler globalExceptionHandler) {
+    public MiddleController(UserMiddleService userMiddleService, GlobalExceptionHandler globalExceptionHandler, TransferRequestConverter converter) {
         this.userMiddleService = userMiddleService;
         this.globalExceptionHandler = globalExceptionHandler;
+        this.converter = converter;
     }
 
     private ResponseEntity<?> handlerForUserCreation(UserCreationStatus userCreationStatus) {
@@ -70,7 +77,7 @@ public class MiddleController {
         };
     }
 
-    @PostMapping("/accounts")
+    @PostMapping("/users/{userId}/accounts")
     public ResponseEntity<?> createAccount(@RequestBody @Valid CreateAccountRequest request) {
         UserCreationStatus userCreationStatus = userMiddleService.
                 createUser(new CreateUserRequest(request.userId(), request.userName()));
@@ -128,6 +135,80 @@ public class MiddleController {
             return retreivalStatus.get();
         }
 
-        return handlerForRetrievingAccounts(userMiddleService.getAccountsById(userId));
+        AccountRetrievalStatus accountsById = userMiddleService.getAccountsById(userId);
+        if (accountsById == AccountRetrievalStatus.ACCOUNTS_NOT_FOUND) {
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).body("Нет счетов у пользователя");
+        }
+        return handlerForRetrievingAccounts(accountsById);
+    }
+
+    private Optional<ResponseEntity<Error>> getErrorResponseEntity(ResponseEntity<?> firstUserAccounts) {
+        ResponseEntity<Error> error = null;
+        if (HttpStatus.NO_CONTENT == firstUserAccounts.getStatusCode()) {
+            return Optional.of(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                    new Error(
+                            "Аккаунт первого пользователя не найден",
+                            "AccountUserNumberOneNotFoundError",
+                            "404",
+                            UUID.randomUUID()
+                    )
+            ));
+        }
+        return Optional.empty();
+    }
+
+    private Optional<ResponseEntity<Error>> checkAccountFunds(CreateTransferRequestDto request, List<AccountListResponse> accountData) {
+        if (accountData != null && !accountData.isEmpty()) {
+            BigDecimal accountMoney = BigDecimal.valueOf(Double.parseDouble(accountData.get(0).amount()));
+            BigDecimal transferMoney = BigDecimal.valueOf(Double.parseDouble(request.amount()));
+            if (accountMoney.compareTo(transferMoney) < 0) {
+                return Optional.of(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                        new Error("Недостаточно средств на счету",
+                                "InsufficientFundsError",
+                                "400",
+                                UUID.randomUUID())
+                ));
+            }
+        }
+        return Optional.empty();
+    }
+
+    private ResponseEntity<Error> problemsChecker(CreateTransferRequestDto request) {
+        log.info("Received transfer request: {}", request);
+
+        ResponseEntity<?> firstUserAccounts = getAccount(request.firstUserId());
+        log.info("First user accounts response: {}", firstUserAccounts);
+
+        Optional<ResponseEntity<Error>> possibleErrorForFirstUser = getErrorResponseEntity(firstUserAccounts);
+        if (possibleErrorForFirstUser.isPresent()) {
+            log.info("Error in first user accounts: {}", possibleErrorForFirstUser.get());
+            return possibleErrorForFirstUser.get();
+        }
+
+        if (firstUserAccounts.getBody() instanceof Error) {
+            return (ResponseEntity<Error>) firstUserAccounts;
+        }
+
+        List<AccountListResponse> accountData = (List<AccountListResponse>) firstUserAccounts.getBody();
+        log.info("Account data for first user: {}", accountData);
+
+        Optional<ResponseEntity<Error>> fundsProblem = checkAccountFunds(request, accountData);
+        if (fundsProblem.isPresent()) {
+            log.info("Funds problem: {}", fundsProblem.get());
+            return fundsProblem.get();
+        }
+        return null;
+    }
+
+    @PostMapping("/transfers")
+    public ResponseEntity<?> makeTransfer(@Valid @RequestBody CreateTransferRequestDto request) {
+        ResponseEntity<Error> possibleErrorForFirstUser = problemsChecker(request);
+        if (possibleErrorForFirstUser != null) {
+            return possibleErrorForFirstUser;
+        }
+
+        ResponseEntity<CreateTransferResponse> transferResponse = userMiddleService.makeTransfer(converter.convertToCreateTransferRequest(request));
+        log.info("Transfer response: {}", transferResponse);
+        return transferResponse;
     }
 }

@@ -2,7 +2,7 @@ package ru.gpb.app.service;
 
 import ru.gpb.app.dto.CreateUserRequest;
 
-public interface UserCommonBackInterface {
+public interface UserBackInterface {
 
     UserCreationStatus createUser(CreateUserRequest request);
 

@@ -12,4 +12,4 @@ spring:
     encoding: UTF-8
 
 provided-back-service:
-  url: http://localhost:8081/v2/api  # времянка, адрес пока не известен
+  url: http://84.201.135.27:8080/v2  # времянка, адрес пока не известен, ex: http://localhost:8081/v2/api

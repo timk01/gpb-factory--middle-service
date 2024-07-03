@@ -4,19 +4,18 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
-import ru.gpb.app.dto.AccountListResponse;
-import ru.gpb.app.dto.CreateAccountRequest;
-import ru.gpb.app.dto.CreateUserRequest;
+import ru.gpb.app.dto.*;
 
 import java.util.Arrays;
 import java.util.Collections;
 
 @Slf4j
 @Service
-public class RestBackClient implements UserCommonBackInterface, AccountCommonBackInterface {
+public class RestBackClient implements UserBackInterface, AccountBackInterface {
 
     private final RestTemplate restTemplate;
 
@@ -25,20 +24,32 @@ public class RestBackClient implements UserCommonBackInterface, AccountCommonBac
     }
 
     private UserCreationStatus getUserCreationStatus(ResponseEntity<Void> response) {
-        return switch (response.getStatusCode()) {
-            case NO_CONTENT -> {
-                log.info("Successfully send request to service C for user creation");
-                yield UserCreationStatus.USER_CREATED;
-            }
-            case CONFLICT -> {
-                log.warn("User already exists");
-                yield UserCreationStatus.USER_ALREADY_EXISTS;
-            }
-            default -> {
-                log.error("Unexpected code-response while user registration: {}", response.getStatusCode());
-                yield UserCreationStatus.USER_ERROR;
-            }
-        };
+        UserCreationStatus userCreationStatus;
+        if (HttpStatus.NO_CONTENT == response.getStatusCode()) {
+            log.info("Successfully send request to service C for user creation");
+            userCreationStatus = UserCreationStatus.USER_CREATED;
+        } else {
+            log.error("Unexpected code-response while user registration: {}", response.getStatusCode());
+            userCreationStatus = UserCreationStatus.USER_ERROR;
+        }
+        return userCreationStatus;
+    }
+
+    private UserCreationStatus getUserHttpClientErrorExceptionStatus(HttpClientErrorException e) {
+        UserCreationStatus userCreationStatus;
+        if (e.getStatusCode() == HttpStatus.CONFLICT) {
+            log.warn("User already exists");
+            userCreationStatus = UserCreationStatus.USER_ALREADY_EXISTS;
+        } else {
+            log.error("HttpClientErrorException happened in program while user creation: ", e);
+            userCreationStatus = UserCreationStatus.USER_ERROR;
+        }
+        return userCreationStatus;
+    }
+
+    private UserCreationStatus getUserErrorStatus(Exception e) {
+        log.error("Something serious happened in program while user creation: ", e);
+        return UserCreationStatus.USER_ERROR;
     }
 
     @Override
@@ -49,32 +60,42 @@ public class RestBackClient implements UserCommonBackInterface, AccountCommonBac
             log.info("Sending request to service C to create user");
             ResponseEntity<Void> response = restTemplate.postForEntity("/users", request, Void.class);
             userCreationStatus = getUserCreationStatus(response);
-        } catch (HttpStatusCodeException e) {
-            log.error("HttpStatusCodeException happened in program while user creation: ", e);
-            userCreationStatus = UserCreationStatus.USER_ERROR;
+        } catch (HttpClientErrorException e) {
+            userCreationStatus = getUserHttpClientErrorExceptionStatus(e);
         } catch (Exception e) {
-            log.error("Something serious happened in program while user creation: ", e);
-            userCreationStatus = UserCreationStatus.USER_ERROR;
+            userCreationStatus = getUserErrorStatus(e);
         }
 
         return userCreationStatus;
     }
 
     private AccountCreationStatus getAccountCreationStatus(ResponseEntity<Void> response) {
-        return switch (response.getStatusCode()) {
-            case NO_CONTENT -> {
-                log.info("Successfully send request to service C for account creation");
-                yield AccountCreationStatus.ACCOUNT_CREATED;
-            }
-            case CONFLICT -> {
-                log.warn("Account already exists");
-                yield AccountCreationStatus.ACCOUNT_ALREADY_EXISTS;
-            }
-            default -> {
-                log.error("Unexpected code-response while account creation: {}", response.getStatusCode());
-                yield AccountCreationStatus.ACCOUNT_ERROR;
-            }
-        };
+        AccountCreationStatus accountCreationStatus;
+        if (HttpStatus.NO_CONTENT == response.getStatusCode()) {
+            log.info("Successfully send request to service C for account creation");
+            accountCreationStatus = AccountCreationStatus.ACCOUNT_CREATED;
+        } else {
+            log.error("Unexpected code-response while account creation: {}", response.getStatusCode());
+            accountCreationStatus = AccountCreationStatus.ACCOUNT_ERROR;
+        }
+        return accountCreationStatus;
+    }
+
+    private AccountCreationStatus getAccountHttpClientErrorExceptionStatus(HttpClientErrorException e) {
+        AccountCreationStatus accountCreationStatus;
+        if (e.getStatusCode() == HttpStatus.CONFLICT) {
+            log.warn("Account already exists");
+            accountCreationStatus = AccountCreationStatus.ACCOUNT_ALREADY_EXISTS;
+        } else {
+            log.error("HttpStatusCodeException happened in program while account creation: ", e);
+            accountCreationStatus = AccountCreationStatus.ACCOUNT_ERROR;
+        }
+        return accountCreationStatus;
+    }
+
+    private AccountCreationStatus getAccountErrorStatus(Exception e) {
+        log.error("Something serious happened in program while user creation: ", e);
+        return AccountCreationStatus.ACCOUNT_ERROR;
     }
 
     @Override
@@ -86,12 +107,10 @@ public class RestBackClient implements UserCommonBackInterface, AccountCommonBac
             String url = String.format("/users/%d/accounts", request.userId());
             ResponseEntity<Void> response = restTemplate.postForEntity(url, request, Void.class);
             accountCreationStatus = getAccountCreationStatus(response);
-        } catch (HttpStatusCodeException e) {
-            log.error("HttpStatusCodeException happened in program while account creation: ", e);
-            accountCreationStatus = AccountCreationStatus.ACCOUNT_ERROR;
+        } catch (HttpClientErrorException e) {
+            accountCreationStatus = getAccountHttpClientErrorExceptionStatus(e);
         } catch (Exception e) {
-            log.error("Something serious happened in program while account creation: ", e);
-            accountCreationStatus = AccountCreationStatus.ACCOUNT_ERROR;
+            accountCreationStatus = getAccountErrorStatus(e);
         }
 
         return accountCreationStatus;

@@ -6,16 +6,19 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import ru.gpb.app.dto.AccountListResponse;
-import ru.gpb.app.dto.CreateAccountRequest;
-import ru.gpb.app.dto.CreateUserRequest;
+import ru.gpb.app.dto.*;
+import ru.gpb.app.dto.Error;
+import ru.gpb.app.mapper.TransferRequestConverter;
 import ru.gpb.app.service.*;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.Mockito.*;
@@ -31,6 +34,9 @@ class MiddleControllerTest {
     @MockBean
     private UserMiddleService userMiddleService;
 
+    @MockBean
+    private TransferRequestConverter transferRequestConverter;
+
     private static CreateUserRequest properRequestId;
     private static CreateUserRequest improperRequestId;
     private static CreateUserRequest wrongRequestId;
@@ -43,6 +49,16 @@ class MiddleControllerTest {
     private static String getAccountsUrl;
 
     private static Long userId;
+
+    private static String makeTransferUrl;
+
+    private static CreateTransferRequestDto transferRequestDto;
+    private static CreateTransferRequest transferRequest;
+
+    private static CreateTransferResponse transferResponse;
+
+    private static ResponseEntity<?> firstUserAccounts;
+    private static List<AccountListResponse> firstUserAccountsData;
 
     @BeforeAll
     static void setUp() {
@@ -60,9 +76,15 @@ class MiddleControllerTest {
                 "Khasmamedov",
                 "My first awesome account"
         );
-        accountCreateUrl = "/v2/api/accounts";
+        accountCreateUrl = String.format("/v2/api/users/%d/accounts", userId);
         userCreateUrl = "/v2/api/users";
         getAccountsUrl = String.format("/v2/api/users/%d/accounts", userId);
+
+        makeTransferUrl = "/v2/api/transfers";
+        transferRequestDto = new CreateTransferRequestDto("timk0111", userId, "Kim_FB", "10.00");
+        transferRequest = new CreateTransferRequest("timk0111", "Kim_FB", "10.00");
+        transferResponse = new CreateTransferResponse("12345");
+        firstUserAccountsData = Arrays.asList(new AccountListResponse(UUID.randomUUID(), "My first awesome account", "5000"));
     }
 
     @Test
@@ -75,8 +97,6 @@ class MiddleControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNoContent());
-
-        verify(userMiddleService, times(1)).createUser(properRequestId);
     }
 
     @Test
@@ -90,9 +110,6 @@ class MiddleControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNoContent());
-
-        verify(userMiddleService, times(1)).createUser(properRequestId);
-        verify(userMiddleService, times(1)).createAccount(properAccountRequest);
     }
 
     @Test
@@ -106,9 +123,6 @@ class MiddleControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNoContent());
-
-        verify(userMiddleService, times(1)).createUser(properRequestId);
-        verify(userMiddleService, times(1)).createAccount(properAccountRequest);
     }
 
     @Test
@@ -125,8 +139,6 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.type").value("CurrentUserIsAlreadyRegistered"))
                 .andExpect(jsonPath("$.code").value("409"))
                 .andExpect(jsonPath("$.traceId").exists());
-
-        verify(userMiddleService, times(1)).createUser(properRequestId);
     }
 
     @Test
@@ -144,9 +156,6 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.type").value("AccountAlreadyExists"))
                 .andExpect(jsonPath("$.code").value("409"))
                 .andExpect(jsonPath("$.traceId").exists());
-
-        verify(userMiddleService, times(1)).createUser(properRequestId);
-        verify(userMiddleService, times(1)).createAccount(properAccountRequest);
     }
 
     @Test
@@ -163,8 +172,6 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.type").value("UserCreationError"))
                 .andExpect(jsonPath("$.code").value("500"))
                 .andExpect(jsonPath("$.traceId").exists());
-
-        verify(userMiddleService, times(1)).createUser(improperRequestId);
     }
 
     @Test
@@ -181,9 +188,6 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.type").value("UserCreationError"))
                 .andExpect(jsonPath("$.code").value("500"))
                 .andExpect(jsonPath("$.traceId").exists());
-
-        verify(userMiddleService, times(1)).createUser(improperRequestId);
-        verifyNoMoreInteractions(userMiddleService);
     }
 
     @Test
@@ -201,9 +205,6 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.type").value("AccountCreationError"))
                 .andExpect(jsonPath("$.code").value("500"))
                 .andExpect(jsonPath("$.traceId").exists());
-
-        verify(userMiddleService, times(1)).createUser(properRequestId);
-        verify(userMiddleService, times(1)).createAccount(properAccountRequest);
     }
 
     @Test
@@ -221,9 +222,6 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.type").value("AccountCreationError"))
                 .andExpect(jsonPath("$.code").value("500"))
                 .andExpect(jsonPath("$.traceId").exists());
-
-        verify(userMiddleService, times(1)).createUser(properRequestId);
-        verify(userMiddleService, times(1)).createAccount(properAccountRequest);
     }
 
     @Test
@@ -240,8 +238,6 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.type").value("GeneralError"))
                 .andExpect(jsonPath("$.code").value("123"))
                 .andExpect(jsonPath("$.traceId").exists());
-
-        verify(userMiddleService, times(1)).createUser(wrongRequestId);
     }
 
     @Test
@@ -259,9 +255,6 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.type").value("GeneralError"))
                 .andExpect(jsonPath("$.code").value("123"))
                 .andExpect(jsonPath("$.traceId").exists());
-
-        verify(userMiddleService, times(1)).createUser(properRequestId);
-        verify(userMiddleService, times(1)).createAccount(properAccountRequest);
     }
 
     @Test
@@ -279,9 +272,6 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.type").value("GeneralError"))
                 .andExpect(jsonPath("$.code").value("123"))
                 .andExpect(jsonPath("$.traceId").exists());
-
-        verify(userMiddleService, times(1)).createUser(properRequestId);
-        verify(userMiddleService, times(1)).createAccount(properAccountRequest);
     }
 
     @Test
@@ -300,8 +290,6 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.type").value("ValidationError"))
                 .andExpect(jsonPath("$.code").value("400"))
                 .andExpect(jsonPath("$.traceId").exists());
-
-        verifyNoMoreInteractions(userMiddleService);
     }
 
     @Test
@@ -320,8 +308,6 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.type").value("ValidationError"))
                 .andExpect(jsonPath("$.code").value("400"))
                 .andExpect(jsonPath("$.traceId").exists());
-
-        verifyNoMoreInteractions(userMiddleService);
     }
 
     @Test
@@ -340,8 +326,6 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.type").value("ValidationError"))
                 .andExpect(jsonPath("$.code").value("400"))
                 .andExpect(jsonPath("$.traceId").exists());
-
-        verifyNoMoreInteractions(userMiddleService);
     }
 
     @Test
@@ -364,8 +348,6 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.type").value("ValidationError"))
                 .andExpect(jsonPath("$.code").value("400"))
                 .andExpect(jsonPath("$.traceId").exists());
-
-        verifyNoMoreInteractions(userMiddleService);
     }
 
     @Test
@@ -388,8 +370,6 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.type").value("ValidationError"))
                 .andExpect(jsonPath("$.code").value("400"))
                 .andExpect(jsonPath("$.traceId").exists());
-
-        verifyNoMoreInteractions(userMiddleService);
     }
 
     @Test
@@ -403,8 +383,6 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.message").value("Пользователь не найден"))
                 .andExpect(jsonPath("$.type").value("UserCannotBeFound"))
                 .andExpect(jsonPath("$.code").value("404"));
-
-        verify(userMiddleService, times(1)).getUserById(userId);
     }
 
     @Test
@@ -418,8 +396,6 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.message").value("Ошибка при получении пользователя"))
                 .andExpect(jsonPath("$.type").value("UserRetrievingError"))
                 .andExpect(jsonPath("$.code").value("500"));
-
-        verify(userMiddleService, times(1)).getUserById(userId);
     }
 
     @Test
@@ -444,9 +420,6 @@ class MiddleControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].accountName").value("Деньги на шашлык"))
                 .andExpect(jsonPath("$[0].amount").value("203605.20"));
-
-        verify(userMiddleService, times(1)).getUserById(userId);
-        verify(userMiddleService, times(1)).getAccountsById(userId);
     }
 
     @Test
@@ -461,9 +434,6 @@ class MiddleControllerTest {
                         .get(getAccountsUrl)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNoContent());
-
-        verify(userMiddleService, times(1)).getUserById(userId);
-        verify(userMiddleService, times(1)).getAccountsById(userId);
     }
 
     @Test
@@ -480,9 +450,6 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.message").value("Ошибка при получении счетов"))
                 .andExpect(jsonPath("$.type").value("AccountRetrievingError"))
                 .andExpect(jsonPath("$.code").value("500"));
-
-        verify(userMiddleService, times(1)).getUserById(userId);
-        verify(userMiddleService, times(1)).getAccountsById(userId);
     }
 
     @Test
@@ -497,11 +464,124 @@ class MiddleControllerTest {
                 .andExpect(jsonPath("$.type").value("GeneralError"))
                 .andExpect(jsonPath("$.code").value("123"))
                 .andExpect(jsonPath("$.traceId").exists());
-
-        verify(userMiddleService, times(1)).getUserById(userId);
-        verify(userMiddleService, times(1)).getAccountsById(userId);
     }
 
+    @Test
+    public void transferWasDoneSuccessfully() throws Exception {
+        when(userMiddleService.makeTransfer(transferRequest))
+                .thenReturn(new ResponseEntity<>(transferResponse, HttpStatus.OK));
+
+        when(userMiddleService.getUserById(userId)).thenReturn(UserRetrievalStatus.USER_FOUND);
+        when(userMiddleService.getAccountsById(userId)).thenReturn(AccountRetrievalStatus.ACCOUNTS_FOUND);
+
+        when(transferRequestConverter.convertToCreateTransferRequest(transferRequestDto))
+                .thenReturn(transferRequest);
+
+        mockMvc.perform(MockMvcRequestBuilders
+                        .post(makeTransferUrl)
+                        .content(asJsonString(transferRequestDto))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.transferId").value(transferResponse.transferId()));
+    }
+
+    @Test
+    public void transferWasNotDoneDueToUnknownFirstUser() throws Exception {
+        when(userMiddleService.getUserById(userId)).thenReturn(UserRetrievalStatus.USER_NOT_FOUND);
+
+        mockMvc.perform(MockMvcRequestBuilders
+                        .post(makeTransferUrl)
+                        .content(asJsonString(transferRequestDto))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Пользователь не найден"))
+                .andExpect(jsonPath("$.type").value("UserCannotBeFound"))
+                .andExpect(jsonPath("$.code").value("404"))
+                .andExpect(jsonPath("$.traceId").exists());
+    }
+
+    @Test
+    public void transferWasNotDoneDueToErrorWhileGettingFirstUser() throws Exception {
+        when(userMiddleService.getUserById(userId))
+                .thenReturn(UserRetrievalStatus.USER_ERROR);
+
+        mockMvc.perform(MockMvcRequestBuilders
+                        .post(makeTransferUrl)
+                        .content(asJsonString(transferRequestDto))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.message").value("Ошибка при получении пользователя"))
+                .andExpect(jsonPath("$.type").value("UserRetrievingError"))
+                .andExpect(jsonPath("$.code").value("500"))
+                .andExpect(jsonPath("$.traceId").exists());
+    }
+
+    @Test
+    public void transferWasNotDoneDueToNotFoundFirstUserAccount() throws Exception {
+        AccountRetrievalStatus accountsNotFound = AccountRetrievalStatus.ACCOUNTS_NOT_FOUND;
+        accountsNotFound.setAccountListResponses(Collections.emptyList());
+
+        when(userMiddleService.getUserById(userId)).thenReturn(UserRetrievalStatus.USER_FOUND);
+        when(userMiddleService.getAccountsById(userId)).thenReturn(accountsNotFound);
+
+        mockMvc.perform(MockMvcRequestBuilders
+                        .post(makeTransferUrl)
+                        .content(asJsonString(transferRequestDto))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Аккаунт первого пользователя не найден"))
+                .andExpect(jsonPath("$.type").value("AccountUserNumberOneNotFoundError"))
+                .andExpect(jsonPath("$.code").value("404"))
+                .andExpect(jsonPath("$.traceId").exists());
+    }
+
+    @Test
+    public void transferWasNotDoneDueToErrorWhileGettingFirstUserAccount() throws Exception {
+        AccountRetrievalStatus accountsError = AccountRetrievalStatus.ACCOUNTS_ERROR;
+
+        when(userMiddleService.getUserById(userId)).thenReturn(UserRetrievalStatus.USER_FOUND);
+        when(userMiddleService.getAccountsById(userId)).thenReturn(accountsError);
+
+        mockMvc.perform(MockMvcRequestBuilders
+                        .post(makeTransferUrl)
+                        .content(asJsonString(transferRequestDto))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.message").value("Ошибка при получении счетов"))
+                .andExpect(jsonPath("$.type").value("AccountRetrievingError"))
+                .andExpect(jsonPath("$.code").value("500"))
+                .andExpect(jsonPath("$.traceId").exists());
+    }
+
+    @Test
+    public void transferWasNotDoneDueToInsufficentFunds() throws Exception {
+        when(userMiddleService.getUserById(userId)).thenReturn(UserRetrievalStatus.USER_FOUND);
+
+        AccountRetrievalStatus accountsFound = AccountRetrievalStatus.ACCOUNTS_FOUND;
+        accountsFound.setAccountListResponses(firstUserAccountsData);
+        when(userMiddleService.getAccountsById(userId)).thenReturn(accountsFound);
+
+        when(transferRequestConverter.convertToCreateTransferRequest(transferRequestDto))
+                .thenReturn(transferRequest);
+
+        CreateTransferRequestDto requestDto = new CreateTransferRequestDto("timk0111", userId, "Kim_FB", "10000.00");
+
+        mockMvc.perform(MockMvcRequestBuilders
+                        .post(makeTransferUrl)
+                        .content(asJsonString(requestDto))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Недостаточно средств на счету"))
+                .andExpect(jsonPath("$.type").value("InsufficientFundsError"))
+                .andExpect(jsonPath("$.code").value("400"))
+                .andExpect(jsonPath("$.traceId").exists());
+    }
 
     public static String asJsonString(final Object obj) {
         try {

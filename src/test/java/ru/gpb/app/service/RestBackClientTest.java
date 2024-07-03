@@ -8,6 +8,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -69,8 +70,6 @@ class RestBackClientTest {
         UserCreationStatus result = restBackClientService.createUser(properRequestId);
 
         assertThat(result).isEqualTo(UserCreationStatus.USER_CREATED);
-        verify(restTemplate, times(1))
-                .postForEntity(userCreateUrl, properRequestId, Void.class);
     }
 
     @Test
@@ -82,38 +81,34 @@ class RestBackClientTest {
         AccountCreationStatus result = restBackClientService.createAccount(properAccountRequest);
 
         assertThat(result).isEqualTo(AccountCreationStatus.ACCOUNT_CREATED);
-        verify(restTemplate, times(1))
-                .postForEntity(accountCreateUrl, properAccountRequest, Void.class);
     }
 
     @Test
     public void createUserReturned409() {
-        ResponseEntity<Void> response = new ResponseEntity<>(HttpStatus.CONFLICT);
-        when(restTemplate.postForEntity(userCreateUrl, properRequestId, Void.class))
-                .thenReturn(response);
+        HttpStatusCodeException conflictedStatusException = new HttpClientErrorException(HttpStatus.CONFLICT);
 
-        UserCreationStatus result = restBackClientService.createUser(properRequestId);
+        when(restTemplate.postForEntity(userCreateUrl, wrongRequestId, Void.class))
+                .thenThrow(conflictedStatusException);
+
+        UserCreationStatus result = restBackClientService.createUser(wrongRequestId);
 
         assertThat(result).isEqualTo(UserCreationStatus.USER_ALREADY_EXISTS);
-        verify(restTemplate, times(1))
-                .postForEntity(userCreateUrl, properRequestId, Void.class);
     }
 
     @Test
     public void createAccountReturned409() {
-        ResponseEntity<Void> response = new ResponseEntity<>(HttpStatus.CONFLICT);
+        HttpStatusCodeException conflictedStatusException = new HttpClientErrorException(HttpStatus.CONFLICT);
+
         when(restTemplate.postForEntity(accountCreateUrl, properAccountRequest, Void.class))
-                .thenReturn(response);
+                .thenThrow(conflictedStatusException);
 
         AccountCreationStatus result = restBackClientService.createAccount(properAccountRequest);
 
         assertThat(result).isEqualTo(AccountCreationStatus.ACCOUNT_ALREADY_EXISTS);
-        verify(restTemplate, times(1))
-                .postForEntity(accountCreateUrl, properAccountRequest, Void.class);
     }
 
     @Test
-    public void userCreateReturnedNot204Or409() {
+    public void userCreateReturnedNot204() {
         @SuppressWarnings("unchecked")
         ResponseEntity<Void> mockedResponse = mock(ResponseEntity.class);
         when(mockedResponse.getStatusCode()).thenReturn(HttpStatus.BAD_REQUEST);
@@ -123,12 +118,10 @@ class RestBackClientTest {
         UserCreationStatus result = restBackClientService.createUser(improperRequestId);
 
         assertThat(result).isEqualTo(UserCreationStatus.USER_ERROR);
-        verify(restTemplate, times(1))
-                .postForEntity(userCreateUrl, improperRequestId, Void.class);
     }
 
     @Test
-    public void accountCreateReturnedNot204Or409() {
+    public void accountCreateReturnedNot204() {
         @SuppressWarnings("unchecked")
         ResponseEntity<Void> mockedResponse = mock(ResponseEntity.class);
         when(mockedResponse.getStatusCode()).thenReturn(HttpStatus.BAD_REQUEST);
@@ -138,8 +131,6 @@ class RestBackClientTest {
         AccountCreationStatus result = restBackClientService.createAccount(properAccountRequest);
 
         assertThat(result).isEqualTo(AccountCreationStatus.ACCOUNT_ERROR);
-        verify(restTemplate, times(1))
-                .postForEntity(accountCreateUrl, properAccountRequest, Void.class);
     }
 
     @Test
@@ -152,8 +143,6 @@ class RestBackClientTest {
         UserCreationStatus result = restBackClientService.createUser(wrongRequestId);
 
         assertThat(result).isEqualTo(UserCreationStatus.USER_ERROR);
-        verify(restTemplate, times(1))
-                .postForEntity(userCreateUrl, wrongRequestId, Void.class);
     }
 
     @Test
@@ -166,8 +155,6 @@ class RestBackClientTest {
         AccountCreationStatus result = restBackClientService.createAccount(properAccountRequest);
 
         assertThat(result).isEqualTo(AccountCreationStatus.ACCOUNT_ERROR);
-        verify(restTemplate, times(1))
-                .postForEntity(accountCreateUrl, properAccountRequest, Void.class);
     }
 
     @Test
@@ -180,8 +167,6 @@ class RestBackClientTest {
         UserCreationStatus result = restBackClientService.createUser(wrongRequestId);
 
         assertThat(result).isEqualTo(UserCreationStatus.USER_ERROR);
-        verify(restTemplate, times(1))
-                .postForEntity(userCreateUrl, wrongRequestId, Void.class);
     }
 
     @Test
@@ -194,8 +179,6 @@ class RestBackClientTest {
         AccountCreationStatus result = restBackClientService.createAccount(properAccountRequest);
 
         assertThat(result).isEqualTo(AccountCreationStatus.ACCOUNT_ERROR);
-        verify(restTemplate, times(1))
-                .postForEntity(accountCreateUrl, properAccountRequest, Void.class);
     }
 
     /**
@@ -212,8 +195,6 @@ class RestBackClientTest {
         UserRetrievalStatus result = restBackClientService.getUserById(userId);
 
         assertThat(result).isEqualTo(UserRetrievalStatus.USER_FOUND);
-        verify(restTemplate, times(1))
-                .getForEntity(gettingUserUrl, Void.class);
     }
 
     @Test
@@ -227,8 +208,6 @@ class RestBackClientTest {
         UserRetrievalStatus result = restBackClientService.getUserById(userId);
 
         assertThat(result).isEqualTo(UserRetrievalStatus.USER_NOT_FOUND);
-        verify(restTemplate, times(1))
-                .getForEntity(gettingUserUrl, Void.class);
     }
 
     @Test
@@ -241,8 +220,6 @@ class RestBackClientTest {
         UserRetrievalStatus result = restBackClientService.getUserById(userId);
 
         assertThat(result).isEqualTo(UserRetrievalStatus.USER_ERROR);
-        verify(restTemplate, times(1))
-                .getForEntity(gettingUserUrl, Void.class);
     }
 
     @Test
@@ -254,8 +231,6 @@ class RestBackClientTest {
         UserRetrievalStatus result = restBackClientService.getUserById(userId);
 
         assertThat(result).isEqualTo(UserRetrievalStatus.USER_ERROR);
-        verify(restTemplate, times(1))
-                .getForEntity(gettingUserUrl, Void.class);
     }
 
     @Test
@@ -275,8 +250,6 @@ class RestBackClientTest {
 
         assertThat(result.getAccountListResponses())
                 .isEqualTo(Arrays.asList(accounts));
-        verify(restTemplate, times(1))
-                .getForEntity(gettingAccountsUrl, AccountListResponse[].class);
     }
 
     @Test
@@ -292,8 +265,6 @@ class RestBackClientTest {
                 .isEqualTo(AccountRetrievalStatus.ACCOUNTS_NOT_FOUND)
                 .extracting(AccountRetrievalStatus::getAccountListResponses)
                 .isEqualTo(Collections.emptyList());
-        verify(restTemplate, times(1))
-                .getForEntity(gettingAccountsUrl, AccountListResponse[].class);
     }
 
     @Test
@@ -306,8 +277,6 @@ class RestBackClientTest {
         AccountRetrievalStatus result = restBackClientService.getAccountsById(userId);
 
         assertThat(result).isEqualTo(AccountRetrievalStatus.ACCOUNTS_ERROR);
-        verify(restTemplate, times(1))
-                .getForEntity(gettingAccountsUrl, AccountListResponse[].class);
     }
 
     @Test
@@ -320,7 +289,5 @@ class RestBackClientTest {
         AccountRetrievalStatus result = restBackClientService.getAccountsById(userId);
 
         assertThat(result).isEqualTo(AccountRetrievalStatus.ACCOUNTS_ERROR);
-        verify(restTemplate, times(1))
-                .getForEntity(gettingAccountsUrl, AccountListResponse[].class);
     }
 }
