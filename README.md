@@ -9,19 +9,20 @@
 ![Static Badge](https://img.shields.io/badge/Spring%20Boot-darkgreen)
 ![Static Badge](https://img.shields.io/badge/Tests:Junit%20%2B%20Mockito-red)
 ![Static Badge](https://img.shields.io/badge/Git-green)
+![Static Badge](https://img.shields.io/badge/Docker-green)
 
 ### Базовое верхнеуровневое представление:
 ![Overall.png](images/Overall.png)
 <br/><br/>
 
 ### Про проект в-общем и фронт-часть:
-[ссылка на гитхаб](https://github.com/gpb-it-factory/khasmamedov-telergam-bot/blob/trunk/README.md)  
+[ссылка на гитхаб](https://github.com/timk01/gpb-factory--front-service)  - там же смотри видео как все работает, в том числе демо, архитектура и тесты    
 
   <br/><br/>
-  <b><a href="https://gpb.fut.ru/itfactory/backend?utm_source=gpb&utm_medium=expert&utm_campaign=recommend&utm_content=all">GBP IT-factory</a></b> | <b><a href="">Документация(_пока пуста_)</a></b> | <b><a href="">Демо(_пока пуста_)</a></b> | <b><a href="https://github.com/gpb-it-factory/khasmamedov-middle-service">GitHub (middle)</a></b> <br>  
+  <b><a href="https://gpb.fut.ru/itfactory/backend?utm_source=gpb&utm_medium=expert&utm_campaign=recommend&utm_content=all">GBP IT-factory</a></b> | <b><a href="">Документация(_пока пуста_)</a></b> | <b><a href="">Демо(_пока пуста_)</a></b> | <b><a href="https://github.com/timk01/gpb-factory--middle-service">GitHub (middle)</a></b> <br>  
   <b><a href="#За_что_отвечает_middle-service">За_что_отвечает_middle-service</a></b> <br>
   <br/><br/>
-  <a target="_blank" href="https://github.com/gpb-it-factory/khasmamedov-telergam-bot"><img src="https://img.shields.io/github/last-commit/gpb-it-factory/khasmamedov-telergam-bot?logo=github&color=609966&logoColor=fff" alt="Last commit"/></a>
+  <a target="_blank" href="https://github.com/timk01/gpb-factory--front-service"><img src="https://img.shields.io/github/last-commit/gpb-it-factory/khasmamedov-telergam-bot?logo=github&color=609966&logoColor=fff" alt="Last commit"/></a>
   <br/><br/>
 
 ### Весь проект на диаграмме ниже: 
